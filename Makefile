@@ -8,7 +8,7 @@ LIBS := midi.o music.o bits.o
 all: polyphon
 
 polyphon: polyphon.c $(INCLUDES) $(LIBS)
-	$(CC) $(CFLAGS) $(CPPFLAGS) polyphon.c $(LDFLAGS) $(LIBS) -o polyphon
+	$(CC) $(CFLAGS) $(CPPFLAGS) polyphon.c $(LDFLAGS) $(LIBS) -lm -o polyphon
 
 music.o: bits.h
 

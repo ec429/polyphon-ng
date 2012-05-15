@@ -77,7 +77,8 @@ event;
 typedef struct
 {
 	unsigned int nchans;
-	unsigned int *instru; // offset into the instrument list
+	unsigned int *instru; // [channel] offset into the instrument list
+	unsigned int *count; // [channel] number of parts
 	unsigned int bars; // length
 	unsigned int nevts;
 	event *evts;
