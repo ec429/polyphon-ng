@@ -26,9 +26,11 @@
 
 int urand(int a, int b);
 bool randb(void);
+int select_instruments(music *piece);
 
 int main(void)
 {
+	unsigned int length=64;
 	unsigned int seed;
 	#ifdef WINDOWS
 		seed=time(NULL);
@@ -57,23 +59,59 @@ int main(void)
 	}
 	fclose(patchlist);
 	fprintf(stderr, "patchlist: Loaded %u instruments\n", ninst);
-	music piece={.nchans=0, .instru=NULL, .count=NULL, .bars=0, .nevts=0, .evts=NULL};
+	music piece={.nchans=0, .instru=NULL, .count=NULL, .bars=length, .nevts=0, .evts=NULL};
+	if(select_instruments(&piece))
+		return(1);
+	fprintf(stderr, "polyphon: instruments selected\n");
+	unsigned int tonic=urand(0, 11); // C Db D Eb E F Gb G Ab A Bb B
+	unsigned int mode=urand(0, N_MO-1);
+	const char *t_mode="";
+	if(mode==MO_MINOR) t_mode=" minor";
+	else if(mode==MO_AEOLIAN) t_mode=" aeolian";
+	bool flat=(tonic==1)||(tonic==3)||(tonic==6)||(tonic==8)||(tonic==10);
+	fprintf(stderr, "polyphon: chose key %c%s%s\n", "CDDEEFGGAABB"[tonic], flat?"♭":"", t_mode);
+	if(add_event(&piece, (event){.t_off=0, .type=EV_SETKEY, .data.key={.tonic=tonic, .mode=mode}}))
+		return(1);
+	return(0);
+}
+
+int urand(int a, int b)
+{
+	#ifdef WINDOWS
+		int v=floor(a+((float)rand()*(b+0.99-a)/RAND_MAX));
+	#else
+		int v=floor(a+(drand48()*(b+0.99-a)));
+	#endif
+	return(v);
+}
+
+bool randb(void)
+{
+	#ifdef WINDOWS
+		return(rand()<(RAND_MAX>>1));
+	#else
+		return(drand48()<0.5);
+	#endif
+}
+
+int select_instruments(music *piece)
+{
 	while(true)
 	{
-		piece.nchans=urand(3, 8);
-		piece.nchans=min(piece.nchans, ninst);
-		free(piece.instru);
-		free(piece.count);
-		piece.instru=malloc(piece.nchans*sizeof(unsigned int));
-		piece.count=malloc(piece.nchans*sizeof(unsigned int));
-		fprintf(stderr, "nchans = %u\n", piece.nchans);
+		piece->nchans=urand(3, 8);
+		piece->nchans=min(piece->nchans, ninst);
+		free(piece->instru);
+		free(piece->count);
+		piece->instru=malloc(piece->nchans*sizeof(unsigned int));
+		piece->count=malloc(piece->nchans*sizeof(unsigned int));
+		fprintf(stderr, "nchans = %u\n", piece->nchans);
 		unsigned int have[128];
 		for(unsigned int i=0;i<128;i++)
 			have[i]=0;
 		bool ch[ninst];
 		for(unsigned int i=0;i<ninst;i++)
 			ch[i]=false;
-		for(unsigned int i=0;i<piece.nchans;i++)
+		for(unsigned int i=0;i<piece->nchans;i++)
 		{
 			unsigned int j;
 			do j=urand(0, ninst-1); while(ch[j]); /* XXX infinite worst-case running time */
@@ -84,15 +122,15 @@ int main(void)
 		{
 			if(ch[j])
 			{
-				piece.instru[i]=j;
-				piece.count[i]=urand(inst[j].few, inst[j].many);
-				fprintf(stderr, "instr %u: %s*%d\n", i, inst[j].name, piece.count[i]);
+				piece->instru[i]=j;
+				piece->count[i]=urand(inst[j].few, inst[j].many);
+				fprintf(stderr, "instr %u: %s*%d\n", i, inst[j].name, piece->count[i]);
 				for(unsigned int k=inst[j].low;k<=inst[j].high;k++)
 					have[k]++;
 				i++;
 			}
 		}
-		if(i!=piece.nchans)
+		if(i!=piece->nchans)
 		{
 			fprintf(stderr, "polyphon: instrument selection internal error\n");
 			return(1);
@@ -115,25 +153,5 @@ int main(void)
 		}
 		if(!reject) break;
 	}
-	fprintf(stderr, "polyphon: instruments selected\n");
 	return(0);
-}
-
-int urand(int a, int b)
-{
-	#ifdef WINDOWS
-		int v=floor(a+((float)rand()*(b+0.99-a)/RAND_MAX));
-	#else
-		int v=floor(a+(drand48()*(b+0.99-a)));
-	#endif
-	return(v);
-}
-
-bool randb(void)
-{
-	#ifdef WINDOWS
-		return(rand()<(RAND_MAX>>1));
-	#else
-		return(drand48()<0.5);
-	#endif
 }

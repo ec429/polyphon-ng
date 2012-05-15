@@ -93,3 +93,22 @@ int load_instrument_list(FILE *fp)
 	}
 	return(0);
 }
+
+int add_event(music *m, event e)
+{
+	if(!m)
+	{
+		fprintf(stderr, "add_event: m is NULL\n");
+		return(1);
+	}
+	unsigned int n=m->nevts++;
+	event *ne=realloc(m->evts, m->nevts*sizeof(event));
+	if(!ne)
+	{
+		perror("add_event: realloc");
+		m->nevts=n;
+		return(1);
+	}
+	(m->evts=ne)[n]=e;
+	return(0);
+}

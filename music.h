@@ -26,6 +26,7 @@ typedef enum
 	EV_NOTEON,
 	EV_NOTEOFF,
 	EV_SETKEY,
+	EV_TIME, // tempo and timesig
 	//EV_SETCHORD,
 	//EV_DYNAMIC, // set
 	//EV_CRESC, // includes both cresc and decresc
@@ -47,6 +48,7 @@ typedef enum
 	MO_MAJOR,
 	MO_MINOR,
 	MO_AEOLIAN,
+	N_MO
 }
 modality;
 
@@ -59,12 +61,22 @@ ev_key;
 
 typedef struct
 {
+	unsigned int ts_n;
+	unsigned int ts_d;
+	unsigned int ts_qpb; // quavers per beat, eg. 2 for 4/4, 3 for 6/8
+	unsigned int bpm; // interpreted relative to ts_qpb
+}
+ev_time;
+
+typedef struct
+{
 	unsigned int t_off;
 	ev_type type;
 	union
 	{
 		ev_note note;
 		ev_key key;
+		ev_time time;
 		//ev_chord chord;
 		//ev_dyn dyn;
 		//ev_cresc cresc;
@@ -89,3 +101,4 @@ unsigned int ninst;
 instrument *inst;
 
 int load_instrument_list(FILE *fp);
+int add_event(music *m, event e);
