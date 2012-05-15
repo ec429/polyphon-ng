@@ -1,4 +1,5 @@
 # Instrument list for Polyphon
+#fewmanyname			pat	low	highcharacter
 3	5	Piano			0	21	108	PLOSIVE
 2	3	Harpsichord		6	36	84	PLOSIVE
 3	4	AcousticGuitar	24	45	81	PLOSIVE
