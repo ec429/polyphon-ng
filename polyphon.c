@@ -29,7 +29,7 @@ double durand(double x);
 bool randb(void);
 bool randp(double p);
 int select_instruments(music *piece);
-int fill_flat(music *m);
+int fill_flat(music *m, double power);
 
 int main(void)
 {
@@ -62,7 +62,7 @@ int main(void)
 	}
 	fclose(patchlist);
 	fprintf(stderr, "patchlist: Loaded %u instruments\n", ninst);
-	music piece={.nchans=0, .instru=NULL, .count=NULL, .bars=length, .nevts=0, .evts=NULL};
+	music piece={.nchans=0, .instru=NULL, .count=NULL, .bars=length*3/4, .nevts=0, .evts=NULL};
 	if(select_instruments(&piece))
 		return(1);
 	fprintf(stderr, "polyphon: instruments selected\n");
@@ -80,16 +80,19 @@ int main(void)
 	// TODO random time sig
 	if(add_event(&piece, (event){.t_off=0, .type=EV_TIME, .data.time={.ts_n=4, .ts_d=4, .ts_qpb=2, .bpm=bpm}}))
 		return(1);
-	if(fill_flat(&piece))
+	if(fill_flat(&piece, bpm/160.0))
 		return(1);
-	fprintf(stderr, "polyphon: completed flat fill\n");
+	piece.bars=length;
+	if(fill_flat(&piece, 1.0))
+		return(1);
+	fprintf(stderr, "polyphon: writing output\n");
 	if(midi_write(piece, stdout))
 		return(1);
 	fprintf(stderr, "polyphon: wrote output file; done\n");
 	return(0);
 }
 
-int fill_flat(music *m)
+int fill_flat(music *m, double power)
 {
 	if(!m)
 	{
@@ -99,10 +102,10 @@ int fill_flat(music *m)
 	unsigned int t=0;
 	ev_key key={.tonic=0, .mode=0};
 	ev_time time={.ts_n=4, .ts_d=4, .ts_qpb=2, .bpm=120};
-	event *note[m->nchans][8], *old[m->nchans][8];
+	unsigned int note[m->nchans][8], old[m->nchans][8];
 	for(unsigned int c=0;c<m->nchans;c++)
 		for(unsigned int p=0;p<8;p++)
-			note[c][p]=old[c][p]=NULL;
+			note[c][p]=old[c][p]=0;
 	unsigned int bar=0, bart=t;
 	for(unsigned int i=0;i<m->nevts;i++)
 	{
@@ -120,10 +123,10 @@ int fill_flat(music *m)
 		}
 		for(unsigned int c=0;c<m->nchans;c++)
 			for(unsigned int p=0;p<8;p++)
-				if(note[c][p]&&(t>=note[c][p]->t_off+note[c][p]->data.note.length))
+				if(note[c][p]&&(t>=m->evts[note[c][p]].t_off+m->evts[note[c][p]].data.note.length))
 				{
 					old[c][p]=note[c][p];
-					note[c][p]=NULL;
+					note[c][p]=0;
 				}
 		switch(e->type)
 		{
@@ -134,10 +137,10 @@ int fill_flat(music *m)
 				time=e->data.time;
 			break;
 			case EV_NOTE:
-				for(unsigned int i=0;i<m->count[e->data.note.chan];i++)
-					if(!note[e->data.note.chan][i])
+				for(unsigned int p=0;p<m->count[e->data.note.chan];p++)
+					if(!note[e->data.note.chan][p])
 					{
-						note[e->data.note.chan][i]=e;
+						note[e->data.note.chan][p]=i;
 						break;
 					}
 			break;
@@ -146,9 +149,11 @@ int fill_flat(music *m)
 			break;
 		}
 	}
+	double energy=power*4096;
 	while(bar<m->bars)
 	{
 		t++;
+		energy+=power*32/QUAVER;
 		while(t-bart>=time.ts_n*time.ts_qpb*QUAVER)
 		{
 			bar++;
@@ -156,10 +161,10 @@ int fill_flat(music *m)
 		}
 		for(unsigned int c=0;c<m->nchans;c++)
 			for(unsigned int p=0;p<8;p++)
-				if(note[c][p]&&(t>=note[c][p]->t_off+note[c][p]->data.note.length))
+				if(note[c][p]&&(t>=m->evts[note[c][p]].t_off+m->evts[note[c][p]].data.note.length))
 				{
-					note[c][p]=NULL;
 					old[c][p]=note[c][p];
+					note[c][p]=0;
 				}
 		for(unsigned int c=0;c<m->nchans;c++)
 			for(unsigned int p=0;p<m->count[c];p++)
@@ -178,15 +183,16 @@ int fill_flat(music *m)
 						startp=0.5;
 					else
 						startp=0.3;
+					unsigned int i=m->instru[c];
+					if(energy<inst[i].power*16) startp*=exp2((energy-inst[i].power*16)/64.0);
 					if(randp(startp))
 					{
-						unsigned int i=m->instru[c];
 						unsigned int centre=(inst[i].low+inst[i].high)/2, width=inst[i].high-inst[i].low;
 						double rating[128];
 						double total=0;
 						for(unsigned int n=inst[i].low;n<=inst[i].high;n++)
 						{
-							double r_melodic=old[c][p]?rate_interval_m(n-old[c][p]->data.note.pitch):1;
+							double r_melodic=old[c][p]?rate_interval_m(n-m->evts[old[c][p]].data.note.pitch):1;
 							double r_range=exp(-abs(n-centre)*0.5/(double)width);
 							double r_key=rate_key(n, key);
 							double r_harmonic=1;
@@ -197,8 +203,8 @@ int fill_flat(music *m)
 									if((c==c2)&&(p==p2)) continue;
 									if(note[c2][p2])
 									{
-										double hrm=rate_interval_h(n-note[c2][p2]->data.note.pitch);
-										unsigned int age=t-note[c2][p2]->t_off;
+										double hrm=rate_interval_h((int)n-(int)m->evts[note[c2][p2]].data.note.pitch);
+										unsigned int age=t-m->evts[note[c2][p2]].t_off;
 										character ch=inst[i].ch, ch2=inst[m->instru[c2]].ch;
 										double cf=cfactor(ch, 0), cf2=cfactor(ch2, age);
 										if((cf==0)||(cf2==0)) hrm=1;
@@ -257,10 +263,11 @@ int fill_flat(music *m)
 										}
 									}
 								}
+								r*=l/(1.0*QUAVER+l);
 								if(centre<60)
-									r*=l/(1.0+l);
+									r*=l/(1.0*CROTCHET+l);
 								if(centre<48)
-									r*=(1.0+l)/(2.0+l);
+									r*=l/(1.0*MINIM+l);
 								unsigned int hl=l;
 								while(hl&&!(hl&1))
 								{
@@ -275,13 +282,14 @@ int fill_flat(music *m)
 								}
 								if(!randp(2.0/(2.0+r))) break;
 							}
-							note[c][p]=m->evts+m->nevts;
+							note[c][p]=m->nevts;
 							if(add_event(m, (event){.t_off=t, .type=EV_NOTE, .data.note={.chan=c, .length=l, .pitch=n}}))
 								return(1);
+							energy-=inst[i].power*(log2(n)/6.0)/8.0;
 						}
 					}
 				}
-				old[c][p]=NULL;
+				old[c][p]=0;
 			}
 	}
 	return(0);

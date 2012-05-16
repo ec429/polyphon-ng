@@ -28,6 +28,7 @@ typedef struct
 	unsigned int low, high; // range, MIDI note numbers
 	unsigned int few, many; // number of parts
 	character ch;
+	unsigned int power;
 }
 instrument;
 

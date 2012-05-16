@@ -22,8 +22,8 @@ int load_instrument_list(FILE *fp)
 			free(line);
 			continue;
 		}
-		char *parts[7];
-		for(unsigned int i=0;i<7;i++)
+		char *parts[8];
+		for(unsigned int i=0;i<8;i++)
 		{
 			if(!(parts[i]=strtok(i?NULL:line, " \t")))
 			{
@@ -89,6 +89,12 @@ int load_instrument_list(FILE *fp)
 		else
 		{
 			fprintf(stderr, "load_instrument_list: bad 'ch' on line %u\n", lines);
+			free(line);
+			return(1);
+		}
+		if(sscanf(parts[7], "%u", &new.power)!=1)
+		{
+			fprintf(stderr, "load_instrument_list: bad 'power' on line %u\n", lines);
 			free(line);
 			return(1);
 		}
