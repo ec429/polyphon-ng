@@ -42,10 +42,17 @@ int midi_write(music m, FILE *fp)
 		append_char(&track, 0);
 		append_char(&track, 0);
 		append_char(&track, 0);
+		// prepare for event loop
 		event *note[8];
 		for(unsigned int p=0;p<8;p++)
 			note[p]=NULL;
 		unsigned int t=0, t_last=t;
+		/* PatchChange */
+		// (time) Cx pp
+		midi_append_time(t-t_last, &track);
+		t_last=t;
+		append_char(&track, 0xc0|(c&0xf));
+		append_char(&track, inst[m.instru[c]].midipat);
 		for(unsigned int i=0;i<m.nevts;i++)
 		{
 			event *e=m.evts+i;
@@ -73,12 +80,18 @@ int midi_write(music m, FILE *fp)
 			switch(e->type)
 			{
 				case EV_SETKEY:
-					// TODO write key event
-					//key=e->data.key;
+					if(c==0)
+					{
+						// TODO write key event
+						//key=e->data.key;
+					}
 				break;
 				case EV_TIME:
-					// TODO write timesig & tempo events
-					//time=e->data.time;
+					if(c==0)
+					{
+						// TODO write timesig & tempo events
+						//time=e->data.time;
+					}
 				break;
 				case EV_NOTE:
 					if(e->data.note.chan==c)
@@ -101,7 +114,7 @@ int midi_write(music m, FILE *fp)
 					}
 				break;
 				default:
-					// ignore
+					fprintf(stderr, "midi_write: warning, unrecognised event type %u\n", e->type);
 				break;
 			}
 		}
