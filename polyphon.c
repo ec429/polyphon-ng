@@ -166,7 +166,19 @@ int fill_flat(music *m)
 			{
 				if(!note[c][p])
 				{
-					if(randp(0.3))
+					double startp;
+					unsigned int u=t-bart;
+					if((u%SEMIBREVE)==0)
+						startp=0.85;
+					else if((u%MINIM)==0)
+						startp=0.72;
+					else if((u%CROTCHET)==0)
+						startp=0.64;
+					else if((u%QUAVER)==0)
+						startp=0.5;
+					else
+						startp=0.3;
+					if(randp(startp))
 					{
 						unsigned int i=m->instru[c];
 						unsigned int centre=(inst[i].low+inst[i].high)/2, width=inst[i].high-inst[i].low;
@@ -177,16 +189,38 @@ int fill_flat(music *m)
 							double r_melodic=old[c][p]?rate_interval_m(n-old[c][p]->data.note.pitch):1;
 							double r_range=exp(-abs(n-centre)*0.5/(double)width);
 							double r_key=rate_key(n, key);
-							rating[n]=r_melodic*r_range*r_key;
+							double r_harmonic=1;
+							unsigned int harms=0;
+							for(unsigned int c2=0;c2<m->nchans;c2++)
+								for(unsigned int p2=0;p2<m->count[c2];p2++)
+								{
+									if((c==c2)&&(p==p2)) continue;
+									if(note[c2][p2])
+									{
+										double hrm=rate_interval_h(n-note[c2][p2]->data.note.pitch);
+										unsigned int age=t-note[c2][p2]->t_off;
+										character ch=inst[i].ch, ch2=inst[m->instru[c2]].ch;
+										double cf=cfactor(ch, 0), cf2=cfactor(ch2, age);
+										if((cf==0)||(cf2==0)) hrm=1;
+										hrm=pow(hrm, max(cf, cf2));
+										r_harmonic*=hrm;
+										harms++;
+									}
+								}
+							rating[n]=r_melodic*r_range*r_key*pow(r_harmonic, 8.0/harms);
 							total+=rating[n];
 						}
 						unsigned int n=inst[i].low;
 						double r=durand(total);
 						while(r>rating[n])
 						{
-							n++;
-							if(n>inst[i].high) break; // shouldn't happen
 							r-=rating[n];
+							n++;
+							if(n>inst[i].high) // shouldn't happen
+							{
+								fprintf(stderr, "flat_fill: warning: n>inst[i].high\n");
+								break;
+							}
 						}
 						if(n<=inst[i].high)
 						{
@@ -196,17 +230,33 @@ int fill_flat(music *m)
 								l++;
 								unsigned int u=t+l, baru=bart;
 								while(u-baru>=time.ts_n*time.ts_qpb*QUAVER) baru+=time.ts_n*time.ts_qpb*QUAVER;
+								u-=baru;
 								double r=1;
 								if((u%SEMIBREVE)==0)
 									r=1.5;
-								else if((u%SEMIBREVE)<u)
-									r=0.3;
-								if((u%MINIM)<(u%SEMIBREVE))
-									r*=0.65;
-								if((u%CROTCHET)<(u%MINIM))
-									r*=0.85;
-								if((u%QUAVER)<(u%CROTCHET))
-									r*=0.95;
+								else
+								{
+									if((u%SEMIBREVE)<u)
+										r=0.3;
+									if((u%MINIM)==0)
+										r*=1.2;
+									else
+									{
+										if((u%MINIM)<(u%SEMIBREVE))
+											r*=0.65;
+										if((u%CROTCHET)==0)
+											r*=1.15;
+										else
+										{
+											if((u%CROTCHET)<(u%MINIM))
+												r*=0.85;
+											if((u%QUAVER)==0)
+												r*=1.1;
+											else if((u%QUAVER)<(u%CROTCHET))
+												r*=0.95;
+										}
+									}
+								}
 								if(centre<60)
 									r*=l/(1.0+l);
 								if(centre<48)
@@ -217,7 +267,13 @@ int fill_flat(music *m)
 									hl>>=1;
 									r*=1.3;
 								}
-								if(!randp(1.0/(1.0+r))) break;
+								hl=l;
+								while(hl>=SEMIBREVE)
+								{
+									hl-=SEMIBREVE;
+									r*=2;
+								}
+								if(!randp(2.0/(2.0+r))) break;
 							}
 							note[c][p]=m->evts+m->nevts;
 							if(add_event(m, (event){.t_off=t, .type=EV_NOTE, .data.note={.chan=c, .length=l, .pitch=n}}))

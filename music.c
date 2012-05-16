@@ -194,6 +194,47 @@ double rate_interval_m(int i) // melodic intervals
 	}
 }
 
+double rate_interval_h(int i)
+{
+	int o=0;
+	i=abs(i);
+	while(i>11)
+	{
+		o++;
+		i=abs(i-12);
+	}
+	double v=0;
+	switch(i)
+	{
+		case 0: // unison
+			v=0.02;
+		case 1: // minor second
+			v=0.02;
+		case 2: // major second
+			v=0.06;
+		case 3: // minor third
+			v=0.82;
+		case 4: // major third
+			v=0.75;
+		case 5: // perfect fourth
+			v=0.8;
+		case 6: // augmented fourth
+			v=0.07;
+		case 7: // perfect fifth
+			v=1.0;
+		case 8: // minor sixth
+			v=0.85;
+		case 9: // major sixth
+			v=0.9;
+		case 10: // minor seventh
+			v=0.62;
+		case 11: // major seventh
+			v=0.09;
+	}
+	if(o) return((v+(o*0.5))/(1.0+(o*0.5))); // Dissonance matters less when it's spaced by octaves.
+	return(v);
+}
+
 double rate_key(unsigned int n, ev_key key)
 {
 	unsigned int deg=(n+12-key.tonic)%12;
@@ -203,7 +244,7 @@ double rate_key(unsigned int n, ev_key key)
 			switch(deg)
 			{
 				case 0: // tonic
-					return 1.0;
+					return 1.6;
 				case 1: // flattened supertonic
 					return 0.02;
 				case 2: // supertonic
@@ -232,7 +273,7 @@ double rate_key(unsigned int n, ev_key key)
 			switch(deg)
 			{
 				case 0: // tonic
-					return 1.0;
+					return 1.6;
 				case 1: // flattened supertonic
 					return 0.02;
 				case 2: // supertonic
@@ -261,7 +302,7 @@ double rate_key(unsigned int n, ev_key key)
 			switch(deg)
 			{
 				case 0: // tonic
-					return 1.0;
+					return 1.6;
 				case 1: // flattened supertonic
 					return 0;
 				case 2: // supertonic
@@ -293,4 +334,23 @@ double rate_key(unsigned int n, ev_key key)
 	}
 	fprintf(stderr, "rate_key: internal error\n");
 	return(0);
+}
+
+double cfactor(character ch, unsigned int age)
+{
+	switch(ch)
+	{
+		case CH_BOWED:
+			return(0.8);
+		case CH_PLOSIVE:
+			return(3*QUAVER/(double)(age+QUAVER));
+		case CH_WIND:
+			return(1.6);
+		case CH_BRASS:
+			return(2+QUAVER/(double)(age+QUAVER));
+		case CH_PERC:
+			return(0);
+	}
+	fprintf(stderr, "cfactor: unrecognised character %u\n", ch);
+	return(1);
 }
