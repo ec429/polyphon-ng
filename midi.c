@@ -1,5 +1,7 @@
 #include "midi.h"
 
+#include <math.h>
+
 void midi_encode_time(unsigned long t, unsigned char result[4], unsigned int *len)
 {
 	unsigned char bytes[4];
@@ -89,8 +91,28 @@ int midi_write(music m, FILE *fp)
 				case EV_TIME:
 					if(c==0)
 					{
-						// TODO write timesig & tempo events
-						//time=e->data.time;
+						/* Meta Tempo */
+						// (time) ff 51 03 tt tt tt
+						midi_append_time(t-t_last, &track);
+						t_last=t;
+						append_char(&track, 0xff);
+						append_char(&track, 0x51);
+						append_char(&track, 0x03);
+						double qps=e->data.time.ts_qpb*e->data.time.bpm/120.0;
+						unsigned int us=floor(1e6/qps);
+						append_char(&track, us>>16);
+						append_char(&track, us>>8);
+						append_char(&track, us);
+						/* Meta TimeSig */
+						// (time) ff 58 04 nn dd cc bb
+						midi_append_time(0, &track);
+						append_char(&track, 0xff);
+						append_char(&track, 0x58);
+						append_char(&track, 0x04);
+						append_char(&track, e->data.time.ts_n);
+						append_char(&track, log2(e->data.time.ts_d));
+						append_char(&track, CROTCHET);
+						append_char(&track, 8);
 					}
 				break;
 				case EV_NOTE:
