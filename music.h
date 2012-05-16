@@ -1,6 +1,15 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#define SEMIQUAVER	1
+#define QUAVER		(SEMIQUAVER*2)
+#define D_QUAVER	(SEMIQUAVER*3)
+#define CROTCHET	(QUAVER*2)
+#define D_CROTCHET	(QUAVER*3)
+#define MINIM		(CROTCHET*2)
+#define D_MINIM		(CROTCHET*3)
+#define SEMIBREVE	(MINIM*2)
+
 typedef enum
 {
 	CH_BOWED,
