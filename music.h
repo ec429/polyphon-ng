@@ -110,3 +110,6 @@ instrument *inst;
 
 int load_instrument_list(FILE *fp);
 int add_event(music *m, event e);
+
+double rate_interval_m(int i);
+double rate_key(unsigned int n, ev_key key);

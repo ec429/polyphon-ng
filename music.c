@@ -1,5 +1,6 @@
 #include "music.h"
 
+#include <math.h>
 #include "bits.h"
 
 int load_instrument_list(FILE *fp)
@@ -122,5 +123,174 @@ int add_event(music *m, event e)
 		return(1);
 	}
 	(m->evts=ne)[n]=e;
+	return(0);
+}
+
+double rate_interval_m(int i) // melodic intervals
+{
+	int o=0;
+	i=abs(i);
+	while(i>9)
+	{
+		o++;
+		i=abs(i-12);
+	}
+	double of=exp2((1-o)/1.5);
+	if(o)
+	{
+		switch(i)
+		{
+			case 0: // octave
+				return 0.5*of;
+			case 1: // major seventh or augmented octave
+				return 0.1*of;
+			case 2: // minor seventh or major ninth
+				return 0.3*of;
+			case 3: // minor tenth (third)
+				return 0.15*of;
+			case 4: // major tenth (third)
+				return 0.12*of;
+			case 5: // perfect eleventh (fourth)
+				return 0.35*of;
+			case 6: // augmented eleventh (fourth)
+				return 0.04*of;
+			case 7: // perfect twelfth (fifth)
+				return 0.38*of;
+			case 8: // minor thirteenth (sixth)
+				return 0.19*of;
+			case 9: // major thirteenth (sixth)
+				return 0.17*of;
+		}
+		fprintf(stderr, "rate_interval_m: internal error\n");
+		return(0);
+	}
+	else
+	{
+		switch(i)
+		{
+			case 0: // unison
+				return 0.32;
+			case 1: // minor second
+				return 0.45;
+			case 2: // major second
+				return 0.8;
+			case 3: // minor third
+				return 0.72;
+			case 4: // major third
+				return 0.7;
+			case 5: // perfect fourth
+				return 0.65;
+			case 6: // augmented fourth
+				return 0.12; // it's not great but it's nice to use occasionally
+			case 7: // perfect fifth
+				return 0.75;
+			case 8: // minor sixth
+				return 0.55;
+			case 9: // major sixth
+				return 0.5;
+		}
+		fprintf(stderr, "rate_interval_m: internal error\n");
+		return(0);
+	}
+}
+
+double rate_key(unsigned int n, ev_key key)
+{
+	unsigned int deg=(n+12-key.tonic)%12;
+	switch(key.mode)
+	{
+		case MO_MAJOR:
+			switch(deg)
+			{
+				case 0: // tonic
+					return 1.0;
+				case 1: // flattened supertonic
+					return 0.02;
+				case 2: // supertonic
+					return 0.85;
+				case 3: // minor mediant
+					return 0.05;
+				case 4: // major mediant
+					return 0.8;
+				case 5: // subdominant
+					return 0.9;
+				case 6: // tritone, wolf, call it what you will, no-one likes a sharpened subdominant
+					return 0.01;
+				case 7: // dominant
+					return 0.95;
+				case 8: // minor submediant
+					return 0.06;
+				case 9: // major submediant
+					return 0.75;
+				case 10: // flattened (or melodic minor) subtonic
+					return 0.2;
+				case 11: // (major or harmonic minor) subtonic
+					return 0.65;
+			}
+		break;
+		case MO_MINOR:
+			switch(deg)
+			{
+				case 0: // tonic
+					return 1.0;
+				case 1: // flattened supertonic
+					return 0.02;
+				case 2: // supertonic
+					return 0.85;
+				case 3: // minor mediant
+					return 0.8;
+				case 4: // major mediant
+					return 0.03;
+				case 5: // subdominant
+					return 0.9;
+				case 6: // tritone
+					return 0.01;
+				case 7: // dominant
+					return 0.95;
+				case 8: // minor submediant
+					return 0.7;
+				case 9: // major submediant
+					return 0.02;
+				case 10: // flattened subtonic
+					return 0.2;
+				case 11: // subtonic
+					return 0.65;
+			}
+		break;
+		case MO_AEOLIAN:
+			switch(deg)
+			{
+				case 0: // tonic
+					return 1.0;
+				case 1: // flattened supertonic
+					return 0;
+				case 2: // supertonic
+					return 0.85;
+				case 3: // minor mediant
+					return 0.8;
+				case 4: // major mediant
+					return 0;
+				case 5: // subdominant
+					return 0.9;
+				case 6: // tritone
+					return 0;
+				case 7: // dominant
+					return 0.95;
+				case 8: // minor submediant
+					return 0.68;
+				case 9: // major submediant
+					return 0;
+				case 10: // flattened subtonic
+					return 0.72;
+				case 11: // subtonic
+					return 0;
+			}
+		break;
+		default:
+			fprintf(stderr, "rate_key: unknown modality %d\n", key.mode);
+			return(0);
+		break;
+	}
+	fprintf(stderr, "rate_key: internal error\n");
 	return(0);
 }

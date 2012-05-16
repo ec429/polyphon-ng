@@ -25,7 +25,9 @@
 #include "music.h"
 
 int urand(int a, int b);
+double durand(double x);
 bool randb(void);
+bool randp(double p);
 int select_instruments(music *piece);
 int fill_flat(music *m);
 
@@ -80,6 +82,9 @@ int main(void)
 		return(1);
 	if(fill_flat(&piece))
 		return(1);
+	fprintf(stderr, "polyphon: completed flat fill\n");
+	if(midi_write(piece, stdout))
+		return(1);
 	return(0);
 }
 
@@ -91,12 +96,12 @@ int fill_flat(music *m)
 		return(1);
 	}
 	unsigned int t=0;
-	ev_key __attribute__((unused)) key={.tonic=0, .mode=0};
+	ev_key key={.tonic=0, .mode=0};
 	ev_time time={.ts_n=4, .ts_d=4, .ts_qpb=2, .bpm=120};
-	event *note[m->nchans][8];
+	event *note[m->nchans][8], *old[m->nchans][8];
 	for(unsigned int c=0;c<m->nchans;c++)
 		for(unsigned int p=0;p<8;p++)
-			note[c][p]=NULL;
+			note[c][p]=old[c][p]=NULL;
 	unsigned int bar=0, bart=t;
 	for(unsigned int i=0;i<m->nevts;i++)
 	{
@@ -115,7 +120,10 @@ int fill_flat(music *m)
 		for(unsigned int c=0;c<m->nchans;c++)
 			for(unsigned int p=0;p<8;p++)
 				if(note[c][p]&&(t>=note[c][p]->t_off+note[c][p]->data.note.length))
+				{
+					old[c][p]=note[c][p];
 					note[c][p]=NULL;
+				}
 		switch(e->type)
 		{
 			case EV_SETKEY:
@@ -137,6 +145,88 @@ int fill_flat(music *m)
 			break;
 		}
 	}
+	while(bar<m->bars)
+	{
+		t++;
+		while(t-bart>=time.ts_n*time.ts_qpb*QUAVER)
+		{
+			bar++;
+			bart+=time.ts_n*time.ts_qpb*QUAVER;
+		}
+		for(unsigned int c=0;c<m->nchans;c++)
+			for(unsigned int p=0;p<8;p++)
+				if(note[c][p]&&(t>=note[c][p]->t_off+note[c][p]->data.note.length))
+				{
+					note[c][p]=NULL;
+					old[c][p]=note[c][p];
+				}
+		for(unsigned int c=0;c<m->nchans;c++)
+			for(unsigned int p=0;p<m->count[c];p++)
+			{
+				if(!note[c][p])
+				{
+					if(randp(0.3))
+					{
+						unsigned int i=m->instru[c];
+						unsigned int centre=(inst[i].low+inst[i].high)/2, width=inst[i].high-inst[i].low;
+						double rating[128];
+						double total=0;
+						for(unsigned int n=inst[i].low;n<=inst[i].high;n++)
+						{
+							double r_melodic=old[c][p]?rate_interval_m(n-old[c][p]->data.note.pitch):1;
+							double r_range=exp(-abs(n-centre)*0.5/(double)width);
+							double r_key=rate_key(n, key);
+							rating[n]=r_melodic*r_range*r_key;
+							total+=rating[n];
+						}
+						unsigned int n=inst[i].low;
+						double r=durand(total);
+						while(r>rating[n])
+						{
+							n++;
+							if(n>inst[i].high) break; // shouldn't happen
+							r-=rating[n];
+						}
+						if(n<=inst[i].high)
+						{
+							unsigned int l=0;
+							while(true)
+							{
+								l++;
+								unsigned int u=t+l, baru=bart;
+								while(u-baru>=time.ts_n*time.ts_qpb*QUAVER) baru+=time.ts_n*time.ts_qpb*QUAVER;
+								double r=1;
+								if((u%SEMIBREVE)==0)
+									r=1.5;
+								else if((u%SEMIBREVE)<u)
+									r=0.3;
+								if((u%MINIM)<(u%SEMIBREVE))
+									r*=0.65;
+								if((u%CROTCHET)<(u%MINIM))
+									r*=0.85;
+								if((u%QUAVER)<(u%CROTCHET))
+									r*=0.95;
+								if(centre<60)
+									r*=l/(1.0+l);
+								if(centre<48)
+									r*=(1.0+l)/(2.0+l);
+								unsigned int hl=l;
+								while(hl&&!(hl&1))
+								{
+									hl>>=1;
+									r*=1.3;
+								}
+								if(!randp(1.0/(1.0+r))) break;
+							}
+							note[c][p]=m->evts+m->nevts;
+							if(add_event(m, (event){.t_off=t, .type=EV_NOTE, .data.note={.chan=c, .length=l, .pitch=n}}))
+								return(1);
+						}
+					}
+				}
+				old[c][p]=NULL;
+			}
+	}
 	return(0);
 }
 
@@ -150,12 +240,30 @@ int urand(int a, int b)
 	return(v);
 }
 
+double durand(double x)
+{
+	#ifdef WINDOWS
+		return(rand()*x/RAND_MAX);
+	#else
+		return(drand48()*x);
+	#endif
+}
+
 bool randb(void)
 {
 	#ifdef WINDOWS
 		return(rand()<(RAND_MAX>>1));
 	#else
 		return(drand48()<0.5);
+	#endif
+}
+
+bool randp(double p)
+{
+	#ifdef WINDOWS
+		return(rand()<(RAND_MAX*p));
+	#else
+		return(drand48()<p);
 	#endif
 }
 
