@@ -38,7 +38,7 @@ typedef enum
 	EV_SETKEY,
 	EV_TIME, // tempo and timesig
 	//EV_SETCHORD,
-	//EV_DYNAMIC, // set
+	EV_DYN, // set dynamics
 	//EV_CRESC, // includes both cresc and decresc
 	//EV_ACCEL, // also rit, rall, and other rubatoids (allargando, perhaps)
 }
@@ -52,6 +52,13 @@ typedef struct
 	// articulation?
 }
 ev_note;
+
+typedef struct
+{
+	unsigned int chan;
+	double vol; // range 0-1
+}
+ev_dyn;
 
 typedef enum
 {
@@ -88,7 +95,7 @@ typedef struct
 		ev_key key;
 		ev_time time;
 		//ev_chord chord;
-		//ev_dyn dyn;
+		ev_dyn dyn;
 		//ev_cresc cresc;
 		//ev_accel accel;
 	}

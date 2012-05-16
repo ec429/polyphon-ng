@@ -80,6 +80,9 @@ int main(void)
 	// TODO random time sig
 	if(add_event(&piece, (event){.t_off=0, .type=EV_TIME, .data.time={.ts_n=4, .ts_d=4, .ts_qpb=2, .bpm=bpm}}))
 		return(1);
+	for(unsigned int c=0;c<piece.nchans;c++)
+		if(add_event(&piece, (event){.t_off=0, .type=EV_DYN, .data.dyn={.chan=c, .vol=0.6}}))
+			return(1);
 	if(fill_flat(&piece, bpm/160.0))
 		return(1);
 	piece.bars=length;
@@ -106,6 +109,9 @@ int fill_flat(music *m, double power)
 	for(unsigned int c=0;c<m->nchans;c++)
 		for(unsigned int p=0;p<8;p++)
 			note[c][p]=old[c][p]=0;
+	unsigned int dyn[m->nchans];
+	for(unsigned int c=0;c<m->nchans;c++)
+		dyn[c]=0;
 	unsigned int bar=0, bart=t;
 	for(unsigned int i=0;i<m->nevts;i++)
 	{
@@ -154,6 +160,24 @@ int fill_flat(music *m, double power)
 	{
 		t++;
 		energy+=power*32/QUAVER;
+		if(randp(energy/4096.0))
+		{
+			unsigned int c=urand(0, m->nchans-1);
+			double v=dyn[c]?m->evts[dyn[c]].data.dyn.vol:0.6;
+			double d=durand((1-v)/3.0);
+			dyn[c]=m->nevts;
+			if(add_event(m, (event){.t_off=t, .type=EV_DYN, .data.dyn={.chan=c, .vol=v+d}}))
+				return(1);
+		}
+		if(randp(0.5-(energy/4096.0)))
+		{
+			unsigned int c=urand(0, m->nchans-1);
+			double v=dyn[c]?m->evts[dyn[c]].data.dyn.vol:0.6;
+			double d=durand(v/3.0);
+			dyn[c]=m->nevts;
+			if(add_event(m, (event){.t_off=t, .type=EV_DYN, .data.dyn={.chan=c, .vol=v-d}}))
+				return(1);
+		}
 		while(t-bart>=time.ts_n*time.ts_qpb*QUAVER)
 		{
 			bar++;
@@ -197,13 +221,16 @@ int fill_flat(music *m, double power)
 							double r_key=rate_key(n, key);
 							double r_harmonic=1;
 							unsigned int harms=0;
+							unsigned int oc=0;
 							for(unsigned int c2=0;c2<m->nchans;c2++)
 								for(unsigned int p2=0;p2<m->count[c2];p2++)
 								{
 									if((c==c2)&&(p==p2)) continue;
 									if(note[c2][p2])
 									{
-										double hrm=rate_interval_h((int)n-(int)m->evts[note[c2][p2]].data.note.pitch);
+										int interval=(int)n-(int)m->evts[note[c2][p2]].data.note.pitch;
+										double hrm=rate_interval_h(interval);
+										if(!(abs(interval)%12)) oc++;
 										unsigned int age=t-m->evts[note[c2][p2]].t_off;
 										character ch=inst[i].ch, ch2=inst[m->instru[c2]].ch;
 										double cf=cfactor(ch, 0), cf2=cfactor(ch2, age);
@@ -213,6 +240,7 @@ int fill_flat(music *m, double power)
 										harms++;
 									}
 								}
+							r_harmonic*=pow(harms/(double)(harms+oc), 2);
 							rating[n]=r_melodic*r_range*r_key*pow(r_harmonic, 8.0/harms);
 							total+=rating[n];
 						}
@@ -239,35 +267,31 @@ int fill_flat(music *m, double power)
 								u-=baru;
 								double r=1;
 								if((u%SEMIBREVE)==0)
-									r=1.5;
+									r=2.0;
 								else
 								{
 									if((u%SEMIBREVE)<u)
-										r=0.3;
+										r=0.2;
 									if((u%MINIM)==0)
-										r*=1.2;
+										r*=1.8;
 									else
 									{
 										if((u%MINIM)<(u%SEMIBREVE))
-											r*=0.65;
+											r*=0.55;
 										if((u%CROTCHET)==0)
-											r*=1.15;
+											r*=1.45;
 										else
 										{
 											if((u%CROTCHET)<(u%MINIM))
-												r*=0.85;
+												r*=0.75;
 											if((u%QUAVER)==0)
-												r*=1.1;
+												r*=1.35;
 											else if((u%QUAVER)<(u%CROTCHET))
-												r*=0.95;
+												r*=0.65;
 										}
 									}
 								}
-								r*=l/(1.0*QUAVER+l);
-								if(centre<60)
-									r*=l/(1.0*CROTCHET+l);
-								if(centre<48)
-									r*=l/(1.0*MINIM+l);
+								r*=pow(l/(double)(1.0*QUAVER+l), centre<60?2.5:2);
 								unsigned int hl=l;
 								while(hl&&!(hl&1))
 								{
@@ -280,12 +304,12 @@ int fill_flat(music *m, double power)
 									hl-=SEMIBREVE;
 									r*=2;
 								}
-								if(!randp(2.0/(2.0+r))) break;
+								if(!randp(4.0/(4.0+r))) break;
 							}
 							note[c][p]=m->nevts;
 							if(add_event(m, (event){.t_off=t, .type=EV_NOTE, .data.note={.chan=c, .length=l, .pitch=n}}))
 								return(1);
-							energy-=inst[i].power*(log2(n)/6.0)/8.0;
+							energy-=inst[i].power*(log2(n)/6.0)*(dyn[c]?m->evts[dyn[c]].data.dyn.vol:0.6)/8.0;
 						}
 					}
 				}

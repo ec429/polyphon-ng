@@ -55,6 +55,7 @@ int midi_write(music m, FILE *fp)
 		t_last=t;
 		append_char(&track, 0xc0|(c&0xf));
 		append_char(&track, inst[m.instru[c]].midipat);
+		double vol=0.6;
 		for(unsigned int i=0;i<m.nevts;i++)
 		{
 			event *e=m.evts+i;
@@ -129,10 +130,22 @@ int midi_write(music m, FILE *fp)
 								t_last=t;
 								append_char(&track, 0x90|(c&0xf));
 								append_char(&track, note[p]->data.note.pitch);
-								append_char(&track, 96); // volume (dynamics not done yet)
+								append_char(&track, floor(vol*127));
 								break;
 							}
 						}
+					}
+				break;
+				case EV_DYN:
+					if(e->data.dyn.chan==c)
+					{
+						vol=e->data.dyn.vol;
+						/* Channel AfterTouch */
+						// (time) Dx vv
+						midi_append_time(t-t_last, &track);
+						t_last=t;
+						append_char(&track, 0xd0|(c&0xf));
+						append_char(&track, floor(vol*127));
 					}
 				break;
 				default:

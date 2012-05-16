@@ -213,7 +213,7 @@ double rate_interval_h(int i)
 	switch(i)
 	{
 		case 0: // unison
-			v=0.02;
+			v=0.5;
 		case 1: // minor second
 			v=0.02;
 		case 2: // major second
@@ -250,7 +250,7 @@ double rate_key(unsigned int n, ev_key key)
 			switch(deg)
 			{
 				case 0: // tonic
-					return 1.6;
+					return 1.3;
 				case 1: // flattened supertonic
 					return 0.02;
 				case 2: // supertonic
@@ -279,7 +279,7 @@ double rate_key(unsigned int n, ev_key key)
 			switch(deg)
 			{
 				case 0: // tonic
-					return 1.6;
+					return 1.3;
 				case 1: // flattened supertonic
 					return 0.02;
 				case 2: // supertonic
@@ -308,7 +308,7 @@ double rate_key(unsigned int n, ev_key key)
 			switch(deg)
 			{
 				case 0: // tonic
-					return 1.6;
+					return 1.3;
 				case 1: // flattened supertonic
 					return 0;
 				case 2: // supertonic
