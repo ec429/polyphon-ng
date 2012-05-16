@@ -32,8 +32,7 @@ instrument;
 
 typedef enum
 {
-	EV_NOTEON,
-	EV_NOTEOFF,
+	EV_NOTE,
 	EV_SETKEY,
 	EV_TIME, // tempo and timesig
 	//EV_SETCHORD,
@@ -45,8 +44,8 @@ ev_type;
 
 typedef struct
 {
-	bool on;
 	unsigned int chan;
+	unsigned int length;
 	unsigned int pitch; // MIDI note value
 	// articulation?
 }

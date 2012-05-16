@@ -27,6 +27,7 @@
 int urand(int a, int b);
 bool randb(void);
 int select_instruments(music *piece);
+int fill_flat(music *m);
 
 int main(void)
 {
@@ -72,6 +73,70 @@ int main(void)
 	fprintf(stderr, "polyphon: chose key %c%s%s\n", "CDDEEFGGAABB"[tonic], flat?"♭":"", t_mode);
 	if(add_event(&piece, (event){.t_off=0, .type=EV_SETKEY, .data.key={.tonic=tonic, .mode=mode}}))
 		return(1);
+	unsigned int bpm=(urand(12, 40)+urand(12, 40))*2;
+	fprintf(stderr, "polyphon: chose tempo %ubpm\n", bpm);
+	// TODO random time sig
+	if(add_event(&piece, (event){.t_off=0, .type=EV_TIME, .data.time={.ts_n=4, .ts_d=4, .ts_qpb=2, .bpm=bpm}}))
+		return(1);
+	if(fill_flat(&piece))
+		return(1);
+	return(0);
+}
+
+int fill_flat(music *m)
+{
+	if(!m)
+	{
+		fprintf(stderr, "fill_flat: m=NULL\n");
+		return(1);
+	}
+	unsigned int t=0;
+	ev_key __attribute__((unused)) key={.tonic=0, .mode=0};
+	ev_time time={.ts_n=4, .ts_d=4, .ts_qpb=2, .bpm=120};
+	event *note[m->nchans][8];
+	for(unsigned int c=0;c<m->nchans;c++)
+		for(unsigned int p=0;p<8;p++)
+			note[c][p]=NULL;
+	unsigned int bar=0, bart=t;
+	for(unsigned int i=0;i<m->nevts;i++)
+	{
+		event *e=m->evts+i;
+		if(e->t_off<t)
+		{
+			fprintf(stderr, "fill_flat: internal error, t_off decreased\n");
+			return(1);
+		}
+		t=e->t_off;
+		while(t-bart>=time.ts_n*time.ts_qpb*QUAVER)
+		{
+			bar++;
+			bart+=time.ts_n*time.ts_qpb*QUAVER;
+		}
+		for(unsigned int c=0;c<m->nchans;c++)
+			for(unsigned int p=0;p<8;p++)
+				if(note[c][p]&&(t>=note[c][p]->t_off+note[c][p]->data.note.length))
+					note[c][p]=NULL;
+		switch(e->type)
+		{
+			case EV_SETKEY:
+				key=e->data.key;
+			break;
+			case EV_TIME:
+				time=e->data.time;
+			break;
+			case EV_NOTE:
+				for(unsigned int i=0;i<m->count[e->data.note.chan];i++)
+					if(!note[e->data.note.chan][i])
+					{
+						note[e->data.note.chan][i]=e;
+						break;
+					}
+			break;
+			default:
+				// ignore
+			break;
+		}
+	}
 	return(0);
 }
 
@@ -96,6 +161,11 @@ bool randb(void)
 
 int select_instruments(music *piece)
 {
+	if(!piece)
+	{
+		fprintf(stderr, "select_instruments: piece=NULL\n");
+		return(1);
+	}
 	while(true)
 	{
 		piece->nchans=urand(3, 8);
@@ -132,7 +202,7 @@ int select_instruments(music *piece)
 		}
 		if(i!=piece->nchans)
 		{
-			fprintf(stderr, "polyphon: instrument selection internal error\n");
+			fprintf(stderr, "select_instruments: internal error\n");
 			return(1);
 		}
 		bool reject=false;

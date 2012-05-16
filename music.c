@@ -38,9 +38,21 @@ int load_instrument_list(FILE *fp)
 			free(line);
 			return(1);
 		}
+		if(new.few>8)
+		{
+			fprintf(stderr, "load_instrument_list: few>8 on line %u\n", lines);
+			free(line);
+			return(1);
+		}
 		if(sscanf(parts[1], "%u", &new.many)!=1)
 		{
 			fprintf(stderr, "load_instrument_list: bad 'many' on line %u\n", lines);
+			free(line);
+			return(1);
+		}
+		if(new.many>8)
+		{
+			fprintf(stderr, "load_instrument_list: many>8 on line %u\n", lines);
 			free(line);
 			return(1);
 		}
