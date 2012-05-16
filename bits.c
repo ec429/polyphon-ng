@@ -41,7 +41,7 @@ string make_string(const char *str)
 	return(s);
 }
 
-void append_char(string *s, char c)
+void append_char(string *s, unsigned char c)
 {
 	if(s->buf)
 	{

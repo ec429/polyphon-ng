@@ -12,6 +12,8 @@ polyphon: polyphon.c $(INCLUDES) $(LIBS)
 
 music.o: bits.h
 
+midi.o: music.h
+
 %.o: %.c %.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ -c $<
 

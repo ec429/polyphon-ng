@@ -85,6 +85,7 @@ int main(void)
 	fprintf(stderr, "polyphon: completed flat fill\n");
 	if(midi_write(piece, stdout))
 		return(1);
+	fprintf(stderr, "polyphon: wrote output file; done\n");
 	return(0);
 }
 

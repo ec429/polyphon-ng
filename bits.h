@@ -1,3 +1,4 @@
+#pragma once
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +23,7 @@ char *fgetl(FILE *); // gets a line of string data; returns a malloc-like pointe
 string init_string(void); // initialises a string buffer in heap
 string null_string(void); // returns a null string (no allocation)
 string make_string(const char *str); // initialises a string buffer in heap, with initial contents copied from str
-void append_char(string *s, char c); // adds a character to a string buffer in heap (and realloc()s if needed)
+void append_char(string *s, unsigned char c); // adds a character to a string buffer in heap (and realloc()s if needed)
 void append_str(string *s, const char *str); // adds a cstring to a string buffer in heap (and realloc()s if needed)
 void append_string(string *s, const string t); // adds a string to a string buffer in heap (and realloc()s if needed)
 void free_string(string *s); // frees a string (is just free(s->buf); really)
