@@ -240,7 +240,7 @@ int fill_flat(music *m, double power)
 										harms++;
 									}
 								}
-							r_harmonic*=pow(harms/(double)(harms+oc), 2);
+							r_harmonic*=harms/(double)(harms+oc);
 							rating[n]=r_melodic*r_range*r_key*pow(r_harmonic, 8.0/harms);
 							total+=rating[n];
 						}
