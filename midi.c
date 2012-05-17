@@ -87,6 +87,13 @@ int midi_write(music m, FILE *fp)
 					{
 						// TODO write key event
 						//key=e->data.key;
+						midi_append_time(t-t_last, &track);
+						t_last=t;
+						append_char(&track, 0xff);
+						append_char(&track, 0x59);
+						append_char(&track, 0x02);
+						append_char(&track, key_sf(e->data.key));
+						append_char(&track, (e->data.key.mode==MO_MAJOR)?0:1);
 					}
 				break;
 				case EV_TIME:

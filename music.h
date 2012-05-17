@@ -124,3 +124,5 @@ double rate_interval_m(int i);
 double rate_interval_h(int i);
 double rate_key(unsigned int n, ev_key key);
 double cfactor(character ch, unsigned int age);
+
+int key_sf(ev_key k);

@@ -360,3 +360,10 @@ double cfactor(character ch, unsigned int age)
 	fprintf(stderr, "cfactor: unrecognised character %u\n", ch);
 	return(1);
 }
+
+int key_sf(ev_key k)
+{
+	unsigned int i=k.tonic;
+	if(k.mode!=MO_MAJOR) i+=3;
+	return((int[]){0, -5, 2, -3, 4, -1, 6, 1, -4, 3, -2, 5}[i%12]);
+}
