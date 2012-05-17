@@ -195,8 +195,11 @@ int fill_flat(music *m, double power)
 			{
 				if(!note[c][p])
 				{
+					unsigned int i=m->instru[c];
 					double startp;
 					unsigned int u=t-bart;
+					double ef=1;
+					if(energy<inst[i].power*2) ef=inst[i].power/(double)(inst[i].power*3-energy);
 					if((u%SEMIBREVE)==0)
 						startp=0.85;
 					else if((u%MINIM)==0)
@@ -204,10 +207,9 @@ int fill_flat(music *m, double power)
 					else if((u%CROTCHET)==0)
 						startp=0.64;
 					else if((u%QUAVER)==0)
-						startp=0.5;
+						startp=0.5*ef;
 					else
-						startp=0.3;
-					unsigned int i=m->instru[c];
+						startp=0.3*ef;
 					if(energy<inst[i].power*16) startp*=exp2((energy-inst[i].power*16)/64.0);
 					if(randp(startp))
 					{
@@ -216,7 +218,14 @@ int fill_flat(music *m, double power)
 						double total=0;
 						for(unsigned int n=inst[i].low;n<=inst[i].high;n++)
 						{
-							double r_melodic=old[c][p]?rate_interval_m(n-m->evts[old[c][p]].data.note.pitch):1;
+							double r_melodic=1;
+							if(old[c][p])
+							{
+								r_melodic=rate_interval_m(n-m->evts[old[c][p]].data.note.pitch);
+								unsigned int age=t-m->evts[old[c][p]].t_off-m->evts[old[c][p]].data.note.length;
+								r_melodic=pow(r_melodic, QUAVER/(double)(QUAVER+age));
+								old[c][p]=0;
+							}
 							double r_range=exp(-abs(n-centre)*0.5/(double)width);
 							double r_key=rate_key(n, key);
 							double r_harmonic=1;
@@ -312,6 +321,8 @@ int fill_flat(music *m, double power)
 										}
 									}
 								}
+								if(l<QUAVER) r*=ef;
+								else if(l<CROTCHET) r*=sqrt(ef);
 								r*=pow(l/(double)(1.0*QUAVER+l), centre<60?2.5:2);
 								unsigned int hl=l;
 								while(hl&&!(hl&1))
@@ -334,7 +345,6 @@ int fill_flat(music *m, double power)
 						}
 					}
 				}
-				old[c][p]=0;
 			}
 	}
 	return(0);
