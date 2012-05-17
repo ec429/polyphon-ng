@@ -241,7 +241,7 @@ int fill_flat(music *m, double power)
 									}
 								}
 							r_harmonic*=harms/(double)(harms+1.5*oc);
-							rating[n]=r_melodic*r_range*r_key*pow(r_harmonic, 8.0/harms);
+							rating[n]=r_melodic*r_range*r_key*pow(r_harmonic, sqrt(8.0/harms));
 							total+=rating[n];
 						}
 						unsigned int n=inst[i].low;
