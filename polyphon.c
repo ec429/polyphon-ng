@@ -218,12 +218,17 @@ int fill_flat(music *m, double power)
 						double total=0;
 						for(unsigned int n=inst[i].low;n<=inst[i].high;n++)
 						{
+							character ch=inst[i].ch;
 							double r_melodic=1;
 							if(old[c][p])
 							{
 								r_melodic=rate_interval_m(n-m->evts[old[c][p]].data.note.pitch);
 								unsigned int age=t-m->evts[old[c][p]].t_off-m->evts[old[c][p]].data.note.length;
-								r_melodic=pow(r_melodic, QUAVER/(double)(QUAVER+age));
+								if((ch==CH_WIND)||(ch==CH_BRASS))
+								{
+									r_melodic*=exp2(-abs(n-m->evts[old[c][p]].data.note.pitch)/10.0);
+								}
+								r_melodic=pow(r_melodic, MINIM/(double)(MINIM+age));
 								old[c][p]=0;
 							}
 							double r_range=exp(-abs(n-centre)*0.5/(double)width);
@@ -241,7 +246,7 @@ int fill_flat(music *m, double power)
 										double hrm=rate_interval_h(interval);
 										if(!(abs(interval)%12)) oc++;
 										unsigned int age=t-m->evts[note[c2][p2]].t_off;
-										character ch=inst[i].ch, ch2=inst[m->instru[c2]].ch;
+										character ch2=inst[m->instru[c2]].ch;
 										double cf=cfactor(ch, 0), cf2=cfactor(ch2, age);
 										if((cf==0)||(cf2==0)) hrm=1;
 										hrm=pow(hrm, 3.0*max(cf, cf2));
@@ -250,11 +255,12 @@ int fill_flat(music *m, double power)
 									}
 								}
 							r_harmonic*=harms/(double)(harms+1.5*oc);
-							rating[n]=r_melodic*r_range*r_key*pow(r_harmonic, sqrt(8.0/harms));
+							r_harmonic=pow(r_harmonic, sqrt(8.0/harms));
+							rating[n]=r_melodic*r_range*r_key*r_harmonic;
 							total+=rating[n];
 						}
 						unsigned int n=inst[i].low;
-						if(randp(0.15))
+						if(randp(0.03))
 						{
 							double r=durand(total);
 							while(r>rating[n])
@@ -270,7 +276,7 @@ int fill_flat(music *m, double power)
 						}
 						else
 						{
-							unsigned int nc=urand(1, 4), tops[nc], least;
+							unsigned int nc=randp(0.2)?urand(2, 3):1, tops[nc], least;
 							for(unsigned int k=0;k<nc;k++)
 								tops[k]=n+k;
 							least=0;
