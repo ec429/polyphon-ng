@@ -1,16 +1,16 @@
 # Instrument list for Polyphon
 #fewmanyname			pat	low	highcharacter	power
-3	5	Piano			0	21	108	PLOSIVE		56
-2	3	Harpsichord		6	36	84	PLOSIVE		80
-3	4	AcousticGuitar	24	45	81	PLOSIVE		48
-3	4	JazzGuitar		26	45	81	PLOSIVE		56
-1	1	AcousticBass	32	33	60	PLOSIVE		40
+#3	5	Piano			0	21	108	PLOSIVE		56
+#2	3	Harpsichord		6	36	84	PLOSIVE		80
+#3	4	AcousticGuitar	24	45	81	PLOSIVE		48
+#3	4	JazzGuitar		26	45	81	PLOSIVE		56
+#1	1	AcousticBass	32	33	60	PLOSIVE		40
 2	2	Violins			40	55	90	BOWED		48
 1	1	Violas			41	48	72	BOWED		40
 1	1	'Cellos			42	36	65	BOWED		36
-3	5	Harp			46	24	105	PLOSIVE		32
+#3	5	Harp			46	24	105	PLOSIVE		32
 1	1	Tympani			47	38	59	PLOSIVE		72
-4	4	Choir			52	40	81	WIND		64
+#4	4	Choir			52	40	81	WIND		64
 1	2	Trumpet			56	52	84	BRASS		112
 1	2	Trombone		57	36	67	BRASS		96
 2	4	FrenchHorn		60	41	77	BRASS		80

@@ -215,7 +215,7 @@ double rate_interval_h(int i)
 		case 0: // unison
 			v=0.5;
 		case 1: // minor second
-			v=0.02;
+			v=0.002;
 		case 2: // major second
 			v=0.06;
 		case 3: // minor third
@@ -225,7 +225,7 @@ double rate_interval_h(int i)
 		case 5: // perfect fourth
 			v=0.8;
 		case 6: // augmented fourth
-			v=0.07;
+			v=0.03;
 		case 7: // perfect fifth
 			v=1.0;
 		case 8: // minor sixth
@@ -235,9 +235,9 @@ double rate_interval_h(int i)
 		case 10: // minor seventh
 			v=0.62;
 		case 11: // major seventh
-			v=0.09;
+			v=0.04;
 	}
-	if(o) return((v+(o*0.5))/(1.0+(o*0.5))); // Dissonance matters less when it's spaced by octaves.
+	if(o) return((v+(o*0.15))/(1.0+(o*0.15))); // Dissonance matters less when it's spaced by octaves.
 	return(v);
 }
 

@@ -235,26 +235,47 @@ int fill_flat(music *m, double power)
 										character ch=inst[i].ch, ch2=inst[m->instru[c2]].ch;
 										double cf=cfactor(ch, 0), cf2=cfactor(ch2, age);
 										if((cf==0)||(cf2==0)) hrm=1;
-										hrm=pow(hrm, max(cf, cf2));
+										hrm=pow(hrm, 3.0*max(cf, cf2));
 										r_harmonic*=hrm;
 										harms++;
 									}
 								}
-							r_harmonic*=harms/(double)(harms+oc);
+							r_harmonic*=harms/(double)(harms+1.5*oc);
 							rating[n]=r_melodic*r_range*r_key*pow(r_harmonic, 8.0/harms);
 							total+=rating[n];
 						}
 						unsigned int n=inst[i].low;
-						double r=durand(total);
-						while(r>rating[n])
+						if(randp(0.15))
 						{
-							r-=rating[n];
-							n++;
-							if(n>inst[i].high) // shouldn't happen
+							double r=durand(total);
+							while(r>rating[n])
 							{
-								fprintf(stderr, "flat_fill: warning: n>inst[i].high\n");
-								break;
+								r-=rating[n];
+								n++;
+								if(n>inst[i].high) // shouldn't happen
+								{
+									fprintf(stderr, "flat_fill: warning: n>inst[i].high\n");
+									break;
+								}
 							}
+						}
+						else
+						{
+							unsigned int nc=urand(1, 4), tops[nc], least;
+							for(unsigned int k=0;k<nc;k++)
+								tops[k]=n+k;
+							least=0;
+							for(unsigned int k=1;k<nc;k++)
+								if(rating[tops[k]]<rating[tops[least]]) least=k;
+							for(unsigned int j=n+nc;j<=inst[i].high;j++)
+								if(rating[j]>rating[tops[least]])
+								{
+									tops[least]=j;
+									least=0;
+									for(unsigned int k=1;k<nc;k++)
+										if(rating[tops[k]]<rating[tops[least]]) least=k;
+								}
+							n=tops[urand(0, nc-1)];
 						}
 						if(n<=inst[i].high)
 						{
